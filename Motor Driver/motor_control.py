@@ -1,25 +1,17 @@
 import RPi.GPIO as io
+io.setwarnings(False)
 io.setmode(io.BCM)
  
 in1_pin = 4
 in2_pin = 17
+en1_pin = 18
  
 io.setup(in1_pin, io.OUT)
 io.setup(in2_pin, io.OUT)
- 
-def set(property, value):
-    try:
-        f = open("/sys/class/rpi-pwm/pwm0/" + property, 'w')
-        f.write(value)
-        f.close()	
-    except:
-        print("Error writing to: " + property + " value: " + value)
- 
-set("delayed", "0")
-set("mode", "pwm")
-set("frequency", "500")
-set("active", "1")
- 
+io.setup(en1_pin, io.OUT)
+
+pwm = io.PWM(18, 500) 
+
 def clockwise():
     io.output(in1_pin, True)    
     io.output(in2_pin, False)
@@ -29,13 +21,22 @@ def counter_clockwise():
     io.output(in2_pin, True)
  
 clockwise()
- 
-while True:
-    cmd = raw_input("Command, f/r 0..9, E.g. f5 :")
-    direction = cmd[0]
-    if direction == "f":
-        clockwise()
-    else: 
-        counter_clockwise()
-    speed = int(cmd[1]) * 11
-    set("duty", str(speed))
+
+dc = 0
+pwm.start(dc)
+
+try:
+    while True:
+        for dc in range(50,101):
+            clockwise()
+            en1_pin.ChangeDutyCycle(dc)
+            time.sleep(.1)
+        for dc in range(50,101):
+            counter_clockwise()
+            en1_pin.ChangeDutyCycle(dc)
+            time.sleep(.1)
+except KeyboardInterrupt:
+    print("Interrupt")
+
+pwm.stop()
+io.cleanup()
